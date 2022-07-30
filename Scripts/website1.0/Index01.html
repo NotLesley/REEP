@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel = "stylesheet" type = "text/css" href = "main.css"/>
+</head>
+<body>
+
+    <script src="https://threejs.org/build/three.min.js"></script>
+    <script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script> <!-- from js folder, not jsm -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/2.1.2/TweenMax.min.js"></script>
+    
+    <script>
+        var camera, scene, renderer;
+        var geometry, material, mesh;
+        var controls;
+
+        init();
+        animate();
+
+        function init() {
+
+        camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 10);
+        camera.position.z = 1;
+
+        scene = new THREE.Scene();
+
+        geometry = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+        material = new THREE.MeshNormalMaterial();
+
+        mesh = new THREE.Mesh(geometry, material);
+        scene.add(mesh);
+
+        renderer = new THREE.WebGLRenderer({
+            antialias: true
+        });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+        camera.position.set(0, 0, 1);
+
+        }
+
+
+        function animate() {
+        requestAnimationFrame(animate);
+
+        controls.update(); // only required if controls.enableDamping = true, or if controls.autoRotate = true
+
+        renderer.render(scene, camera); // Renderiza a câmera e a cena
+
+        }
+                
+
+    </script>
+</body>
+</html>

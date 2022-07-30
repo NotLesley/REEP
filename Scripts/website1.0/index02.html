@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>REEP</title>
+    <link rel = "stylesheet" type = "text/css" href = "main.css"/>
+</head>
+<body>
+    <script src="https://threejs.org/build/three.min.js"></script>
+    <script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script> <!-- from js folder, not jsm -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/2.1.2/TweenMax.min.js"></script>
+    
+    <script>
+ 
+        var scene, camera, renderer;
+        var geometry, material;
+        var controls;
+
+        function init()
+        {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xdddddd);
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+            raycaster = new THREE.Raycaster(); //Raycaster tracks the loacation of the cursor and which object reacts to the event
+            renderer = new THREE.WebGLRenderer({antialias: true});
+           
+            renderer.setClearColor("#e5e8e5");
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);           
+            camera.position.set(0, 0, 10);
+            
+            //adjust canvas size when resizing the window
+            window.addEventListener('resize', ()=>
+            {
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+            })
+
+            light = new THREE.PointLight(0xFFFFFF, 1, 500);
+            light.position.set(10, 0, -25);
+            //scene.add(light);
+
+            light_1 = new THREE.PointLight(0xFFFFFF, 1, 500);
+            light_1.position.set(10, 0, 25);
+            scene.add(light_1);
+        }
+        function animate()
+        {
+            requestAnimationFrame(animate);
+            //controls.update();
+            renderer.render(scene, camera);
+        }
+        
+        function Geometry_setup()
+        {
+            sphere_geometry = new THREE.SphereGeometry(1, 100, 100);
+            sphere_material = new THREE.MeshLambertMaterial({color: 0xededed});
+            /*let texture = new THREE.CanvasTexture(new FlakesTexture());
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.x = 10;
+            texture.repeat.y = 6;
+
+            const ballMaterial = 
+            {
+                clearcoat: 1.0,
+                clearcoatRoughness: 0.1,
+                metalness: 0.9,
+                roughness:0.5,
+                color: 0x8017ca,
+                nomalMap: texture,
+                normalScale: new THREE.Vector2(0.15, 0.15),
+                envMap: envmap.texture
+            };
+
+            ballMat = new THREE.MeshPhysicalMaterial(ballMaterial);
+            */
+            //Instantiation
+            mesh_sun = new THREE.Mesh(sphere_geometry, sphere_material);
+            mesh_tl = new THREE.Mesh(sphere_geometry, sphere_material);
+            mesh_as = new THREE.Mesh(sphere_geometry, sphere_material);
+            mesh_ck = new THREE.Mesh(sphere_geometry, sphere_material);
+            mesh_es = new THREE.Mesh(sphere_geometry, sphere_material);
+            mesh_tp = new THREE.Mesh(sphere_geometry, sphere_material);
+            mesh_ro = new THREE.Mesh(sphere_geometry, sphere_material);
+
+            //Resizing
+            mesh_sun.scale.set(3, 3 ,3);
+            mesh_tl.scale.set(1.5, 1.5, 1.5);
+            mesh_as.scale.set(1, 1, 1);
+            mesh_ck.scale.set(1.2, 1.2, 1.2);
+            mesh_es.scale.set(0.8, 0.8, 0.8);
+            mesh_tp.scale.set(0.5, 0.5, 0.5);
+            mesh_ro.scale.set(1, 1, 1);
+
+            //Positioning
+            centroid = new THREE.Vector3(3, 0, 0);
+            pos = new Array(6);
+            for (let i = 0; i < 7; i++)
+            {
+                pos[i] = new THREE.Vector3(0, 0, 0);
+            }
+            
+            mesh_sun.position.set(0, 0, 0);
+            mesh_tl.position.copy(pos[0].add(new THREE.Vector3(3.5, 0.5, -2.5)));
+            mesh_as.position.copy(pos[1].add(new THREE.Vector3(0.7, 3.2, 2.2)));
+            mesh_ck.position.copy(pos[2].add(new THREE.Vector3(-2, 0, 3.5)));
+            mesh_es.position.copy(pos[3].add(new THREE.Vector3(-2, -3, -1)));
+            mesh_tp.position.copy(pos[4].add(new THREE.Vector3(1.5, -2, 2.5)));
+            mesh_ro.position.copy(pos[5].add(new THREE.Vector3(-2.6, 3, -0.7)));
+        
+        
+            //Adding mesh to scene
+            scene.add(mesh_sun);
+            scene.add(mesh_tl);
+            scene.add(mesh_as);
+            scene.add(mesh_ck);
+            scene.add(mesh_es);
+            scene.add(mesh_tp);
+            scene.add(mesh_ro);
+
+        }
+
+        init();
+        animate();
+        Geometry_setup();
+        
+    </script>
+</body>
+</html>
