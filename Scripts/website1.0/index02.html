@@ -8,15 +8,20 @@
     <link rel = "stylesheet" type = "text/css" href = "main.css"/>
 </head>
 <body>
+
+
+
     <script src="https://threejs.org/build/three.min.js"></script>
     <script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script> <!-- from js folder, not jsm -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/2.1.2/TweenMax.min.js"></script>
     
     <script>
  
-        var scene, camera, renderer;
+        var scene, camera, renderer, raycaster;
         var geometry, material;
         var controls;
+        var mouse;
+        var state, substate;
 
         function init()
         {
@@ -25,13 +30,14 @@
             camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
             raycaster = new THREE.Raycaster(); //Raycaster tracks the loacation of the cursor and which object reacts to the event
             renderer = new THREE.WebGLRenderer({antialias: true});
+            mouse = new THREE.Vector2();
            
             renderer.setClearColor("#e5e8e5");
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.body.appendChild(renderer.domElement);
 
             controls = new THREE.OrbitControls(camera, renderer.domElement);           
-            camera.position.set(0, 0, 10);
+            camera.position.set(0, 0, 15);
             
             //adjust canvas size when resizing the window
             window.addEventListener('resize', ()=>
@@ -48,11 +54,13 @@
             light_1 = new THREE.PointLight(0xFFFFFF, 1, 500);
             light_1.position.set(10, 0, 25);
             scene.add(light_1);
+
+            state = 0;
+            substate = 0;
         }
         function animate()
         {
             requestAnimationFrame(animate);
-            //controls.update();
             renderer.render(scene, camera);
         }
         
@@ -60,6 +68,7 @@
         {
             sphere_geometry = new THREE.SphereGeometry(1, 100, 100);
             sphere_material = new THREE.MeshLambertMaterial({color: 0xededed});
+            
             /*let texture = new THREE.CanvasTexture(new FlakesTexture());
             texture.wrapS = THREE.RepeatWrapping;
             texture.wrapT = THREE.RepeatWrapping;
@@ -80,55 +89,221 @@
 
             ballMat = new THREE.MeshPhysicalMaterial(ballMaterial);
             */
-            //Instantiation
-            mesh_sun = new THREE.Mesh(sphere_geometry, sphere_material);
-            mesh_tl = new THREE.Mesh(sphere_geometry, sphere_material);
-            mesh_as = new THREE.Mesh(sphere_geometry, sphere_material);
-            mesh_ck = new THREE.Mesh(sphere_geometry, sphere_material);
-            mesh_es = new THREE.Mesh(sphere_geometry, sphere_material);
-            mesh_tp = new THREE.Mesh(sphere_geometry, sphere_material);
-            mesh_ro = new THREE.Mesh(sphere_geometry, sphere_material);
+    
+            //order: tl, as, ck, es, tp, ro
 
-            //Resizing
-            mesh_sun.scale.set(3, 3 ,3);
-            mesh_tl.scale.set(1.5, 1.5, 1.5);
-            mesh_as.scale.set(1, 1, 1);
-            mesh_ck.scale.set(1.2, 1.2, 1.2);
-            mesh_es.scale.set(0.8, 0.8, 0.8);
-            mesh_tp.scale.set(0.5, 0.5, 0.5);
-            mesh_ro.scale.set(1, 1, 1);
+            //bubble positions
+            centroid = new THREE.Vector3(0, 0, 0);
 
-            //Positioning
-            centroid = new THREE.Vector3(3, 0, 0);
             pos = new Array(6);
-            for (let i = 0; i < 7; i++)
+            for (let i = 0; i < 6; i++)
             {
                 pos[i] = new THREE.Vector3(0, 0, 0);
             }
-            
-            mesh_sun.position.set(0, 0, 0);
-            mesh_tl.position.copy(pos[0].add(new THREE.Vector3(3.5, 0.5, -2.5)));
-            mesh_as.position.copy(pos[1].add(new THREE.Vector3(0.7, 3.2, 2.2)));
-            mesh_ck.position.copy(pos[2].add(new THREE.Vector3(-2, 0, 3.5)));
-            mesh_es.position.copy(pos[3].add(new THREE.Vector3(-2, -3, -1)));
-            mesh_tp.position.copy(pos[4].add(new THREE.Vector3(1.5, -2, 2.5)));
-            mesh_ro.position.copy(pos[5].add(new THREE.Vector3(-2.6, 3, -0.7)));
-        
-        
-            //Adding mesh to scene
-            scene.add(mesh_sun);
-            scene.add(mesh_tl);
-            scene.add(mesh_as);
-            scene.add(mesh_ck);
-            scene.add(mesh_es);
-            scene.add(mesh_tp);
-            scene.add(mesh_ro);
 
+            tl_sec_pos = new Array(8);
+
+            //Instantitaion
+            mesh_sun = new THREE.Mesh(sphere_geometry, sphere_material);
+            mesh_sun.scale.set(3, 3 ,3);
+            mesh_sun.position.set(0, 0, 0);
+            scene.add(mesh_sun);
+
+            mesh_primary = new Array(6); // Primary bubbles
+            for (let i = 0; i < 6; i++)
+            {
+                mesh_primary[i] = new THREE.Mesh(sphere_geometry, sphere_material);
+            }
+
+            tl_secondary = new Array();
+            for (let i = 0; i < 8; i++)
+            {
+                tl_secondary[i] = new THREE.Mesh(sphere_geometry, sphere_material); 
+            }
+
+            //Resizing
+            mesh_primary[0].scale.set(1.5, 1.5, 1.5);
+            mesh_primary[1].scale.set(1.0, 1.0, 1.0);
+            mesh_primary[2].scale.set(1.2, 1.2, 1.2);
+            mesh_primary[3].scale.set(0.8, 0.8, 0.8);
+            mesh_primary[4].scale.set(0.5, 0.5, 0.5);
+            mesh_primary[5].scale.set(1.0, 1.0, 1.0);
+
+            for (let k = 0; k < 8; k++)
+            {
+                tl_secondary[k].scale.set(0.6, 0.6, 0.6);
+            }
+
+            //Positioning
+            mesh_primary[0].position.copy(pos[0].add(new THREE.Vector3(3.5, 0.5, -2.5)));
+            mesh_primary[1].position.copy(pos[1].add(new THREE.Vector3(0.7, 3.2, 2.2)));
+            mesh_primary[2].position.copy(pos[2].add(new THREE.Vector3(-2, 0, 3.5)));
+            mesh_primary[3].position.copy(pos[3].add(new THREE.Vector3(-2, -3, -1)));
+            mesh_primary[4].position.copy(pos[4].add(new THREE.Vector3(1.5, -2, 2.5)));
+            mesh_primary[5].position.copy(pos[5].add(new THREE.Vector3(-2.6, 3, -0.7)));
+
+            for (let i = 0; i < 8; i++)
+            {
+                tl_sec_pos[i] = new THREE.Vector3(pos[0].x, pos[0].y, pos[0].z);
+            }
+            
+            pivot = new THREE.Vector3(3.5, 0.5, -2.5);
+            a = new THREE.Euler(-1.4429267, -0.8448606, 0.6609951 + Math.PI/2, 'XYZ');
+            b = new THREE.Euler(+1.4429267, +0.8448606, -0.6609951, 'XYZ');
+            
+            mesh_primary[0].add(tl_secondary[0]);
+            tl_secondary[0].position.copy(tl_sec_pos[0]);
+
+            tl_sec_pos[0].applyEuler(a);
+            tl_secondary[0].position.copy(tl_sec_pos[0]);
+            tl_sec_pos[0].applyEuler(b);
+            tl_secondary[0].position.copy(tl_sec_pos[0]);
+            //mesh_primary[0].rotateOnAxis(pivot.normalize(), Math.PI);
+            
+            console.log(tl_secondary[0].rotation);
+
+
+            //Adding to scene / rendering
+
+
+            /*var canvas = document.createElement('canvas');
+            canvas.width = 300;
+            canvas.height = 150;
+            var ctx = canvas.getContext("2d");
+            ctx.font = "100pt Arial";
+            ctx.fillStyle = "red";
+            ctx.textAlign = "center";
+            ctx.fillText("ASSESSMENT", 128, 44);
+            var tex = new THREE.Texture(canvas);
+            tex.needsUpdate = true;
+            spriteMat = new THREE.SpriteMaterial({map: tex});
+            map = new THREE.Texture
+            sprite = new THREE.Sprite(spriteMat);*/
+
+            
+
+            for(let i = 0; i< 6; i++)
+            {
+                scene.add(mesh_primary[i]);
+            }
+
+            //Naming
+            mesh_sun.name = 'sun';
+
+            for (let i = 0; i< 6; i++)
+            {
+                mesh_primary[i].name = i; 
+            }
+
+           /* var canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            var ctx = canvas.getContext("2d");
+            ctx.font = "44pt Arial";
+            ctx.fillStyle = "white";
+            ctx.textAlign = "center";
+            ctx.fillText('Assessment', 128, 44);
+            console.log(ctx);
+            var tex = new THREE.Texture(canvas);
+            tex.needsUpdate = true;
+            var spriteMat = new THREE.SpriteMaterial({map: tex});
+            var sprite = new THREE.Sprite(spriteMat);
+            scene.add(sprite);*/
+        }
+       
+        function OnMouseClick(event)
+        {
+            event.preventDefault();
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
+        
+            raycaster.setFromCamera(mouse, camera);
+            var intersects = raycaster.intersectObjects(scene.children, true);//returns array of object that mouse in intersecting with
+            for(i = 0; i < intersects.length; i++)
+            {
+                tl = new TimelineMax();
+                tl.timeScale(1);
+
+                if(intersects[i].object.name == 'sun')
+                {
+                    switch(substate)
+                    {
+                        case 0:
+                            substate = 1;
+                            break;
+                        case 1: 
+                            substate = 0;
+                            break;
+                    } 
+                    FSM_Update(substate);
+                }
+                if(intersects[i].object.name == '0')
+                {
+
+                }
+
+                console.log(intersects[i].object.name);
+            }
         }
 
+        function FSM_Controller()
+        {
+            document.body.addEventListener('click', OnMouseClick);
+            //let rotation = new THREE.Quaternion();
+            //rotation.setFromUnitVectors(centroid.normalize(), pos[3].normalize());
+        }
+        function FSM_Update(zone)
+        {
+            switch(zone)
+            {
+                case 0:
+                        Primary_pos(1);
+                        break;
+                case 1:
+                        Primary_pos(1.5);
+                        break;
+                case 2:
+                        break;
+                case 3:
+                        break;
+            }
+        }
+        function Primary_pos(scalar)
+        {
+            for (let j = 0; j < 6; j++)
+                            {
+                                this.tl.to(mesh_primary[j].position, 0.5, {x: (pos[j].x*scalar),
+                                                                           y: (pos[j].y*scalar), 
+                                                                           z: (pos[j].z*scalar),
+                                                                           ease: Elastic.easeOut.config(3, 3)
+                                                                           });
+                            }
+        }
+        
+        function rotateAboutPoint(obj, point, axis, theta, pointIsWorld)
+        {
+            pointIsWorld = (pointIsWorld === undefined)? false : pointIsWorld;
+
+            if(pointIsWorld){
+                obj.parent.localToWorld(obj.position); // compensate for world coordinate
+            }
+
+            obj.position.sub(point); // remove the offset
+            obj.position.applyAxisAngle(axis, theta); // rotate the POSITION
+            obj.position.add(point); // re-add the offset
+
+            if(pointIsWorld){
+                obj.parent.worldToLocal(obj.position); // undo world coordinates compensation
+            }
+
+            obj.rotateOnAxis(axis, theta); // rotate the OBJECT
+        }
+        
         init();
         animate();
         Geometry_setup();
+        FSM_Controller();
+
         
     </script>
 </body>

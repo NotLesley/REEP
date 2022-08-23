@@ -16,10 +16,10 @@ h1
     top: 2em;
     left: 2em;
     font-family: "Lucida Console", Courier, monospace;
-    font-size: 7em;
+    font-size: 1em;
     text-transform: uppercase;
     width: auto;
     line-height: .8em;
-    border: 5px solid black;
+    border: 2px solid black;
     padding: .2em;
 }
