@@ -8,14 +8,24 @@
     <link rel = "stylesheet" type = "text/css" href = "main.css"/>
 </head>
 <body>
-    <div id="container">
-        <canvas id="c"></canvas>
-    <div id="labels"></div>
-    </div>
+    <canvas id="c" ></canvas>
+    <div class="container">
+        <div class="title-container">
+          <div class="title">
+            <h1>Hello</h1>
+            <p>Welcome to REEP</p>
+            <button class="explore" id="startbutton">Start Exploring</button>
+          </div>
+        </div>
+      </div>
     <script src="https://threejs.org/build/three.min.js"></script>
     <script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script> <!-- from js folder, not jsm -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/2.1.2/TweenMax.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js" integrity="sha512-lIKG1kC5TMb1Zx32vdz1n31YJMZRknVY20U9MJ28hD3y2c0OKN0Ce5NhJji78v8zX5UOSsm+MTBOcJt7yMBnSg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script src="script2.js"></script>
+    <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.0.5/gsap.min.js"></script>-->
+    <script type = "text/javascript" src="initialise.js"></script>
+    <script  type = "text/javascript" src="tweening.js"></script>
+    <script  type = "text/javascript" src="script.js"></script>
+    
 </body>
 </html>
