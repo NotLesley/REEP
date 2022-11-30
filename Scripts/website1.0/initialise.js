@@ -3,7 +3,12 @@ var geometry, material;
 var controls;
 var mouse;
 var state, substate;
+var expand = new Array(6);
 var tl = new TimelineMax();
+var nam = 'x';
+var rot_prev = new THREE.Euler(0, 0, 0, 'XYZ');
+var wait = 1000;
+var start_rot_tween = true
 
 function init()
 {
@@ -11,7 +16,7 @@ function init()
     const loader = new THREE.TextureLoader();
     const bgTexture = loader.load('media/background01.jpg');
     scene.background = new THREE.Color(0xdddddd);
-    camera = new THREE.PerspectiveCamera(85, window.innerWidth/window.innerHeight, 0.001, 1000);
+    camera = new THREE.PerspectiveCamera(100, window.innerWidth/window.innerHeight, 0.0001, 10000);
     raycaster = new THREE.Raycaster(); //Raycaster tracks the loacation of the cursor and which object reacts to the event
     var canvas = document.querySelector('#c');
     renderer = new THREE.WebGLRenderer({canvas});
@@ -24,7 +29,7 @@ function init()
 
     controls = new THREE.OrbitControls(camera, renderer.domElement);   
     controls.target.set(0, 0, 0);
-    controls.update();        
+    controls.update();
     cam_pos = new THREE.Vector3(0, 0, 30);
     cam_rot = new THREE.Euler(0, 0, 0, 'XYZ');
     camera.position.copy(cam_pos);
@@ -45,14 +50,30 @@ function init()
     light_1.position.set(10, 0, 25);
     scene.add(light_1);
 
+    //Finite state machine 
     state = 0;
     substate = 0;
+    
+    for (i = 0; i < 6; i++)
+    {
+        expand[i] = false;
+    }
+
+
 }
 
 function Geometry_setup()
 {
     sphere_geometry = new THREE.SphereGeometry(1, 100, 100);
-    sphere_material = new THREE.MeshLambertMaterial({color: 0xededed});
+    sphere_material = new THREE.MeshLambertMaterial({color: 0xffffff});
+    tl_mat = new THREE.MeshLambertMaterial({color: 0x27c957});
+    ck_mat = new THREE.MeshLambertMaterial({color: 0x125fce});
+    ass_mat = new THREE.MeshLambertMaterial({color: 0xff1f4c});
+    se_mat = new THREE.MeshLambertMaterial({color: 0xd9ee00});
+    tp_mat = new THREE.MeshLambertMaterial({color: 0x8e8e8e});
+    ps_mat = new THREE.MeshLambertMaterial({color: 0x9852e6});
+
+
     centroid = new THREE.Vector3(0, 0, 0);
 
     pos = new Array(6);
@@ -70,17 +91,49 @@ function Geometry_setup()
     
 
     mesh_primary = new Array(6); 
-    for (let i = 0; i < 6; i++)
-    {
-        mesh_primary[i] = new THREE.Mesh(sphere_geometry, sphere_material);
-    }
+    mesh_primary[0] = new THREE.Mesh(sphere_geometry, tl_mat);
+    mesh_primary[1] = new THREE.Mesh(sphere_geometry, ass_mat);
+    mesh_primary[2] = new THREE.Mesh(sphere_geometry, se_mat);
+    mesh_primary[3] = new THREE.Mesh(sphere_geometry, tp_mat);
+    mesh_primary[4] = new THREE.Mesh(sphere_geometry, ps_mat);
+    mesh_primary[5] = new THREE.Mesh(sphere_geometry, ck_mat);
 
-    tl_secondary = new Array();
+    secondary = new Array(6);
+
     for (let i = 0; i < 8; i++)
     {
-        tl_secondary[i] = new THREE.Mesh(sphere_geometry, sphere_material); 
+        secondary[i] = new Array(8);
     }
 
+    for (let k = 0; k < 6; k++)
+    {
+        for (let i = 0; i < 8; i++)
+        {
+            switch(k)
+            {
+                case 0:
+                    secondary[k][i] = new THREE.Mesh(sphere_geometry, tl_mat); 
+                    break;
+                case 1:
+                    secondary[k][i] = new THREE.Mesh(sphere_geometry, ass_mat); 
+                    break;
+                case 2:
+                    secondary[k][i] = new THREE.Mesh(sphere_geometry, se_mat); 
+                    break;
+                case 3:
+                    secondary[k][i] = new THREE.Mesh(sphere_geometry, tp_mat); 
+                    break;
+                case 4: 
+                    secondary[k][i] = new THREE.Mesh(sphere_geometry, ps_mat); 
+                    break;
+                case 5:
+                    secondary[k][i] = new THREE.Mesh(sphere_geometry, ck_mat); 
+                    break;
+            }   
+            secondary[k][i].scale.set(0.5, 0.5, 0.5);
+        }
+    }
+    
     //-------------------------Resizing--------------------------------
 
     mesh_primary[0].scale.set(0.7, 0.7, 0.7);
@@ -90,10 +143,6 @@ function Geometry_setup()
     mesh_primary[4].scale.set(0.6, 0.6, 0.6);
     mesh_primary[5].scale.set(0.6, 0.6, 0.6);
 
-    for (let k = 0; k < 8; k++)
-    {
-        tl_secondary[k].scale.set(0.5, 0.5, 0.5);
-    }
 
     //-----------------------Euler Rotation---------------------------
     rot = new Array(6);
@@ -114,28 +163,57 @@ function Geometry_setup()
         mesh_primary[i].position.copy(pos[i])
     }
 
-    for (let i = 0; i < 8; i++)
+    for (let k = 0; k < 6; k++)
     {
-        mesh_primary[0].add(tl_secondary[i]);
-    }
-
-    tl_pos = new Array(8);
-    tl_rot = new Array(8);
-
-    for(let i = 0; i < 8; i++)
-    {
-        tl_pos[i] = new THREE.Vector3(3, 0, 0);
+        for (let i = 0; i < 8; i++)
+        {
+            mesh_primary[k].add(secondary[k][i]);
+        }
     }
     
-    angle = -4*Math.PI/9;
-    for (let i = 0; i < 8; i++)
+
+    sec_pos = new Array(6);
+    sec_rot = new Array(6);
+
+    for (k = 0; k < 6; k++)
     {
-        tl_rot[i] = new THREE.Euler(rot[0].x, rot[0].y, rot[0].z + angle, 'XYZ');
-        tl_pos[i].applyEuler(tl_rot[i]);
-        tl_pos[i].multiplyScalar(0.1);
-        tl_secondary[i].position.copy(tl_pos[i]);
+        sec_pos[k] = new Array(8);
+        sec_rot[k] = new Array(8);
+    }
+
+    for (let k = 0; k < 6; k++)
+    {
+        for(let i = 0; i < 8; i++)
+        {
+            sec_pos[k][i] = new THREE.Vector3(3, 0, 0);
+        }
+    }
+    
+    
+    angle = -4*Math.PI/9;
+
+    for (let i = 0; i< 8; i++)
+    {
+        sec_rot[0][i] = new THREE.Euler(rot[0].x, rot[0].y, rot[0].z + angle, 'XYZ');
+        sec_rot[1][i] = new THREE.Euler(rot[1].x, rot[1].y, rot[1].z + angle, 'XYZ');
+        sec_rot[2][i] = new THREE.Euler(rot[2].x, rot[2].y, rot[2].z + angle, 'XYZ');
+        sec_rot[3][i] = new THREE.Euler(rot[3].x + Math.PI/4, rot[3].y - Math.PI/4, rot[3].z + angle, 'XYZ');
+        sec_rot[4][i] = new THREE.Euler(rot[4].x, rot[4].y, rot[4].z + angle, 'XYZ');
+        sec_rot[5][i] = new THREE.Euler(rot[5].x, rot[5].y, rot[5].z + angle, 'XYZ');
+
         angle += Math.PI/9;
     }
+    for (let k = 0; k < 6; k++)
+    {
+        for (let i = 0; i < 8; i++)
+        {
+            sec_pos[k][i].applyEuler(sec_rot[k][i]);
+            sec_pos[k][i].multiplyScalar(0.1);
+            secondary[k][i].position.copy(sec_pos[k][i]);
+            
+        }
+    }
+    
    
     //----------------------------Adding to scene------------------------            
 
@@ -148,7 +226,7 @@ function Geometry_setup()
 
     mesh_sun.name = 'sun';
 
-    for (let i = 0; i< 6; i++)
+    for (let i = 0; i < 6; i++)
     {
         mesh_primary[i].name = i; 
     }
@@ -160,7 +238,7 @@ function Text_Setup()
     var ctx = document.createElement('canvas').getContext('2d'); 
     ctx.canvas.width = 256;
     ctx.canvas.height = 256;
-    ctx.font = '44pt Bartkey';
+    ctx.font = '44pt Poppins';
     ctx.fillStyle = "black";
     ctx.textBaseline = 'middle';
     ctx.fillText("Teaching", 0, 45);
@@ -187,45 +265,61 @@ function Text_Setup()
 
 function SecondaryTextSetup()
 {
-    var ctx_tl = new Array(8);
-    var tex_tl = new Array(8);
-    var labelMat_tl = new Array(8);
-    var label_tl = new Array(8);
+    var ctx = new Array(8);
+    var tex = new Array(8);
+    var labelMat = new Array(8);
+    var label = new Array(8);
+
+    for (let k = 0; k < 6; k++)
+    {
+        ctx[k] = new Array(8);
+    }
+
+    for (let k = 0; k < 6; k++)
+    {
+        for (let i = 0; i < 8; i++)
+        {
+            ctx[k][i] = document.createElement('canvas').getContext('2d'); 
+            ctx[k][i].canvas.width = 256;
+            ctx[k][i].canvas.height = 256;
+            ctx[k][i].font = '44pt Poppins';
+            ctx[k][i].fillStyle = "black";
+            ctx[k][i].textBaseline = 'middle';
+        } 
+    }
+    
+    Fill(ctx[0][0], "Conceptual", "Engagement", "");
+    Fill(ctx[0][1], "Fliped", "Classroom", "");
+    Fill(ctx[0][2], "Project", "Based", "Learning");
+    Fill(ctx[0][3], "CAS", "", "");
+    Fill(ctx[0][4], "COP", "", "");
+    Fill(ctx[0][5], "FYE", "", "");
+    Fill(ctx[0][6], "LEA", "", "");
+    Fill(ctx[0][7], "SUP", "", "");
+
+
+    for (k = 0; k < 6; k++)
+    {
+        for (i = 0; i < 8; i++)
+        {
+            tex[k][i] = new THREE.CanvasTexture(ctx_tl[i].canvas);
+            tex[k][i].minFilter = THREE.LinearFilter;
+            tex[k][i].wrapS = THREE.ClampToEdgeWrapping;
+            tex[k][i].wrapT = THREE.ClampToEdgeWrapping;
+
+            labelMat[k][i] = new THREE.SpriteMaterial({ map: tex[k][i], transparent: true});
+            label[k][i] = new THREE.Sprite(labelMat[k][i]);
+            
+            label[k][i].scale.set(3, 3, 1);
+        }
+    }
     for (let i = 0; i < 8; i++)
     {
-        ctx_tl[i] = document.createElement('canvas').getContext('2d'); 
-        ctx_tl[i].canvas.width = 256;
-        ctx_tl[i].canvas.height = 256;
-        ctx_tl[i].font = '44pt Bartkey';
-        ctx_tl[i].fillStyle = "black";
-        ctx_tl[i].textBaseline = 'middle';
-    } 
-    Fill(ctx_tl[0], "Conceptual", "Engagement", "");
-    Fill(ctx_tl[1], "Fliped", "Classroom", "");
-    Fill(ctx_tl[2], "Project", "Based", "Learning");
-    Fill(ctx_tl[3], "CAS", "", "");
-    Fill(ctx_tl[4], "COP", "", "");
-    Fill(ctx_tl[5], "FYE", "", "");
-    Fill(ctx_tl[6], "LEA", "", "");
-    Fill(ctx_tl[7], "SUP", "", "");
+        label[0][i].position.y =  1;
+        label[0][i].position.x =  3;
+        label[0][i].position.z =  1;
 
-    for (let i = 0; i < 8; i++)
-    {
-        tex_tl[i] = new THREE.CanvasTexture(ctx_tl[i].canvas);
-        tex_tl[i].minFilter = THREE.LinearFilter;
-        tex_tl[i].wrapS = THREE.ClampToEdgeWrapping;
-        tex_tl[i].wrapT = THREE.ClampToEdgeWrapping;
-
-        labelMat_tl[i] = new THREE.SpriteMaterial({ map: tex_tl[i], transparent: true});
-        label_tl[i] = new THREE.Sprite(labelMat_tl[i]);
-        
-        label_tl[i].scale.set(3, 3, 1);
-
-        label_tl[i].position.y =  1;
-        label_tl[i].position.x =  3;
-        label_tl[i].position.z =  1;
-
-        tl_secondary[i].add(label_tl[i]);
+        secondary[0][i].add(label_tl[i]);
 
     }
 
