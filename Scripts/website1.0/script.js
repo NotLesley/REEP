@@ -271,10 +271,5 @@ function Expanda(primary_orb, scalar)
                                                     });
     }
 }
-
-
-
-
-
 FSM_Controller();
 Animate();
